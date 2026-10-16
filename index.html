@@ -53,18 +53,19 @@ body{background:var(--void);color:var(--ink);font-family:var(--body);font-size:1
   padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .viewer-inner{display:grid;gap:18px;justify-items:center;width:100%}
 .close{font:400 15px var(--pixel);padding:14px 18px;border:3px solid #fff;background:var(--panel);color:#fff;cursor:pointer;box-shadow:4px 4px 0 #000}
-.vending-card{width:min(560px,100%);max-height:calc(100dvh - 112px);overflow:auto;padding:20px;background:var(--panel);border:3px solid var(--line-hi);box-shadow:0 0 0 3px #000,6px 6px 0 3px #000}
-.vending-card h2{margin:0;color:var(--accent);font:400 18px/1.4 var(--pixel)}
-.vending-card p{margin:8px 0 16px;color:var(--muted);font-size:15px;line-height:1.4}
-.vending-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.vending-item{display:flex;min-width:0;min-height:64px;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:2px solid var(--line-hi);background:#2a2022;color:var(--ink);text-align:left;font:500 15px var(--body);cursor:pointer}
-.vending-item:hover:not(:disabled){border-color:var(--accent);background:#34262a}
+.vending-card{width:min(560px,100%);max-height:calc(100dvh - 112px);overflow:auto;padding:18px;background:#1e1618;border:4px solid #070607;box-shadow:0 0 0 2px #c58b4b,6px 6px 0 #000}
+.vending-card h2{margin:0;color:#ffcf66;font:400 17px/1.5 var(--pixel);text-shadow:2px 2px #000}
+.vending-card p{margin:8px 0 16px;color:#d2c5b1;font:400 13px/1.5 var(--mono)}
+.vending-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.vending-item{display:grid;grid-template-columns:40px minmax(0,1fr) auto;min-width:0;min-height:66px;align-items:center;gap:8px;padding:8px;border:2px solid #75614c;background:#2a2022;color:var(--ink);text-align:left;font:400 13px/1.35 var(--pixel);cursor:pointer;box-shadow:inset -2px -2px #171113,inset 2px 2px #483633}
+.vending-item:hover:not(:disabled){border-color:#ffcf66;background:#3a2928}
 .vending-item:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
-.vending-item span{min-width:0;overflow-wrap:anywhere}
-.vending-item small{flex:none;color:var(--accent);font:400 10px var(--pixel)}
+.vending-icon{display:block;width:36px;height:36px;image-rendering:pixelated;shape-rendering:crispEdges}
+.vending-item .vending-name{min-width:0;overflow-wrap:anywhere}
+.vending-item small{flex:none;color:#ffcf66;font:400 9px/1.4 var(--pixel);text-align:right}
 .vending-item:disabled{color:var(--muted);opacity:.7;cursor:default}
 .vending-item:disabled small{color:var(--cyan)}
-@media(max-width:480px){.vending-card{padding:14px}.vending-items{grid-template-columns:1fr}.vending-item{min-height:54px}}
+@media(max-width:480px){.vending-card{padding:14px}.vending-items{grid-template-columns:1fr}.vending-item{min-height:58px}}
 
 .badge-wrap{position:relative;padding-top:70px;width:min(86vw,320px)}
 .lanyard{position:absolute;left:50%;top:0;width:44px;height:84px;transform:translateX(-50%);
@@ -2446,20 +2447,38 @@ const INTERACTS = [
   { x: EXIT_DOOR.x, y: 55.4*T, when: ch(2), verb: 'выйти на улицу', go: () => toast('ВЫХОД', S.quest === 'office' || S.quest === 'boss' ? 'Рабочий день только начался' : 'Сначала разберусь с запиской') }
 ];
 const VENDING_ITEMS = [
-  { id: 'watermelon', name: 'Арбуз', line: 'Целый арбуз на рабочий день. Что может пойти не так?' },
-  { id: 'icecream', name: 'Мороженое', line: 'Мороженое. Маленькая радость посреди рабочего дня.' },
-  { id: 'litEnergy', name: 'Lit Energy', line: 'Lit Energy. Надеюсь, теперь хватит сил дожить до вечера.' },
-  { id: 'ikeaCake', name: 'Торт из ИКЕА', line: 'Торт из ИКЕА. Откуда он в автомате? Ладно, беру.' },
-  { id: 'nuts', name: 'Орехи', line: 'Орехи. Неплохой перекус.' },
-  { id: 'water', name: 'Вода', line: 'Вода. Самый разумный выбор за сегодня.' },
-  { id: 'tunaOnigiri', name: 'Онигири с тунцом', line: 'Онигири с тунцом! Звучит необычно, попробую.' },
-  { id: 'chocolate', name: 'Шоколадный батончик', line: 'Шоколад. Кажется, день уже стал чуточку лучше.' }
+  { id: 'watermelon', name: 'Арбуз', icon: 'watermelon', causesNausea: true, sickLine: 'Арбуз был вкусный… но что-то мне нехорошо. Кажется, сейчас стошнит.' },
+  { id: 'icecream', name: 'Мороженое', icon: 'icecream', causesNausea: true, sickLine: 'Мороженое оказалось слишком тяжёлым. Ох, меня сейчас стошнит…' },
+  { id: 'litEnergy', name: 'Lit Energy', icon: 'energy', line: 'Lit Energy. Надеюсь, теперь хватит сил дожить до вечера.' },
+  { id: 'ikeaCake', name: 'Торт из ИКЕА', icon: 'cake', line: 'Торт из ИКЕА. Откуда он в автомате? Ладно, беру.' },
+  { id: 'nuts', name: 'Орехи', icon: 'nuts', line: 'Орехи. Неплохой перекус.' },
+  { id: 'water', name: 'Вода', icon: 'water', line: 'Вода. Самый разумный выбор за сегодня.' },
+  { id: 'tunaOnigiri', name: 'Онигири с тунцом', icon: 'onigiri', causesNausea: true, sickLine: 'Онигири с тунцом… почему мне так плохо? Кажется, меня сейчас стошнит.' },
+  { id: 'chocolate', name: 'Шоколадный батончик', icon: 'chocolate', line: 'Шоколад. Кажется, день уже стал чуточку лучше.' }
 ];
+const PIXEL_ICON_COLORS = { B: '#31536d', C: '#f2d7a0', D: '#6c4130', G: '#4c9a55', g: '#28623c', N: '#2a3a32', O: '#ee9e34', P: '#f2b5b0', R: '#d94b45', T: '#b77840', W: '#f5f0df', Y: '#ffe05a', b: '#7a4a32', r: '#8a2938' };
+const PIXEL_ICONS = {
+  watermelon: ['........', '...gg...', '..gRRg..', '.gRRRRg.', 'gRRrRRRg', 'gRRRRRRg', '.gggggg.', '........'],
+  icecream: ['...PP...', '..PPPP..', '.PPCCPP.', '.PCCCCP.', '..CCCC..', '...bb...', '...bb...', '..bbbb..'],
+  energy: ['..RRRR..', '.RYYYYR.', '.RYYBYR.', '.RYYBYR.', '.RYYYYR.', '.RBYBR..', '.RYYYYR.', '..RRRR..'],
+  cake: ['........', '..TTTT..', '.TCCCCT.', '.TCCCCT.', '.RRRRRR.', '.CCCCCC.', '..DDDD..', '........'],
+  nuts: ['........', '..bb....', '.bTTb...', '.bbbb...', '....bb..', '...bTTb.', '...bbbb.', '........'],
+  water: ['...BB...', '..BWWB..', '.BWWWWB.', '.BWWWWB.', '.BWWWWB.', '.BWWWWB.', '..BBBB..', '...BB...'],
+  onigiri: ['........', '...WW...', '..WWWW..', '.WWWWWW.', '.WWNNWW.', '.WNNNNW.', '..NNNN..', '...NN...'],
+  chocolate: ['..TTTT..', '.TDDDDT.', '.TCTTCT.', '.TDDDDT.', '.TCTTCT.', '.TDDDDT.', '..TTTT..', '........']
+};
+function pixelIcon(name){
+  const rects = [];
+  PIXEL_ICONS[name].forEach((rowText, rowIndex) => [...rowText].forEach((colorKey, columnIndex) => {
+    if (colorKey !== '.') rects.push(`<rect x="${columnIndex}" y="${rowIndex}" width="1" height="1" fill="${PIXEL_ICON_COLORS[colorKey]}"/>`);
+  }));
+  return `<svg class="vending-icon" viewBox="0 0 8 8" aria-hidden="true" focusable="false">${rects.join('')}</svg>`;
+}
 function openVending(){
   const bought = S.vending.purchases;
   $('vendingItems').innerHTML = VENDING_ITEMS.map(item => {
     const purchased = bought.includes(item.id);
-    return `<button class="vending-item" type="button" data-vending="${item.id}" ${purchased ? 'disabled' : ''}><span>${item.name}</span><small>${purchased ? 'КУПЛЕНО' : 'КУПИТЬ'}</small></button>`;
+    return `<button class="vending-item" type="button" data-vending="${item.id}" ${purchased ? 'disabled' : ''}>${pixelIcon(item.icon)}<span class="vending-name">${item.name}</span><small>${purchased ? 'КУПЛЕНО' : 'КУПИТЬ'}</small></button>`;
   }).join('');
   $('vendingMessage').textContent = S.vending.nauseous ? 'Матвею уже нехорошо. Может, хватит перекусов?' : 'Выбери что-нибудь к рабочему дню.';
   showViewer('vendingView');
@@ -2470,10 +2489,10 @@ $('vendingItems').addEventListener('click', e => {
   const item = VENDING_ITEMS.find(entry => entry.id === button.dataset.vending);
   if (!item || S.vending.purchases.includes(item.id)) return;
   S.vending.purchases.push(item.id);
-  const nauseous = !S.vending.nauseous && S.vending.purchases.includes('watermelon') && S.vending.purchases.includes('icecream');
-  S.vending.nauseous = S.vending.nauseous || nauseous;
+  const nauseous = item.causesNausea && !S.vending.nauseous;
+  S.vending.nauseous = S.vending.nauseous || !!item.causesNausea;
   closeViewers(); SFX.pick();
-  say([['matvey', nauseous ? 'Арбуз с мороженым — плохая идея. Ох, кажется, меня сейчас стошнит…' : item.line, true]]);
+  say([['matvey', nauseous ? item.sickLine : item.line, true]]);
 });
 function openPass(){
   const p = CONFIG.pass;
