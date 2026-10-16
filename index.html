@@ -1044,9 +1044,9 @@ const CONFIG = {
       { id: 'maps',     name: 'Карты',     icon: '🗺️', color: '#4a8ad8', off: 'Нет сети' },
       { id: 'music',    name: 'Музыка',    icon: '🎵', color: '#e84a7a', off: 'Сейчас не до музыки' }
     ],
-    /* Галерея телефона: просто положи фото в папку gallery рядом с index.html и назови их по порядку:
-       1.jpg, 2.jpg, 3.jpg … (подходят .jpg .jpeg .png .webp). Игра сама найдёт их по номерам, пропусков быть не должно. */
+     /* Галерея телефона: изображения автоматически считываются из папки gallery в репозитории. */
     galleryFolder: 'gallery',
+     galleryRepo: 'kolbaster2005/papochka',
     gallery: [],
     notes: [
       { title: 'Купить', text: 'Букет для Алины. Хлеб. Корм коту.' },
@@ -3600,17 +3600,38 @@ function miniKey(e, down){
 /* ================= телефон ================= */
 const PH = { screen: 'home', msgs: [], scripted: false, typing: false, code: '', waitingSend: null, introDone: false, finalReady: false, finalStarted: false };
 const PHONE = CONFIG.phone;
-// фото галереи: сначала из списка в CONFIG, потом из папки gallery/1.jpg, 2.jpg … (ищем по номерам, пока не кончатся)
 const GALLERY = [...PHONE.gallery];
 (async () => {
-  const EXT = ['jpg', 'jpeg', 'png', 'webp', 'JPG', 'JPEG', 'PNG', 'WEBP'];
-  const probe = src => new Promise(r => { const im = new Image(); im.onload = () => r(true); im.onerror = () => r(false); im.src = src; });
-  for (let i = 1; i <= 300; i++) {
-    let found = null;
-    for (const e of EXT) { const src = `${PHONE.galleryFolder}/${i}.${e}`; if (await probe(src)) { found = src; break; } }
-    if (!found) break;
-    GALLERY.push(found); if (!$('phone').hidden && (PH.screen === 'gallery')) renderPhone();
+  const paths = [];
+  try {
+    for (let page = 1; ; page++) {
+      const response = await fetch(`https://api.github.com/repos/${PHONE.galleryRepo}/contents/${PHONE.galleryFolder}?ref=main&per_page=100&page=${page}`, {
+        headers: { Accept: 'application/vnd.github+json' }
+      });
+      if (!response.ok) throw new Error('Не удалось получить список фотографий');
+      const entries = await response.json();
+      if (!Array.isArray(entries)) throw new Error('Некорректный список фотографий');
+      paths.push(...entries
+        .filter(entry => entry.type === 'file' && /\.(?:jpe?g|png|webp|gif|avif)$/i.test(entry.name))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+        .map(entry => `${PHONE.galleryFolder}/${encodeURIComponent(entry.name)}`));
+      if (entries.length < 100) break;
+    }
+  } catch {
+    const extensions = ['jpg', 'jpeg', 'png', 'webp', 'JPG', 'JPEG', 'PNG', 'WEBP'];
+    const probe = src => new Promise(resolve => { const image = new Image(); image.onload = () => resolve(true); image.onerror = () => resolve(false); image.src = src; });
+    for (let i = 1; i <= 300; i++) {
+      let found = null;
+      for (const extension of extensions) {
+        const src = `${PHONE.galleryFolder}/${i}.${extension}`;
+        if (await probe(src)) { found = src; break; }
+      }
+      if (!found) break;
+      paths.push(found);
+    }
   }
+  GALLERY.push(...paths.filter(path => !GALLERY.includes(path)));
+  if (!$('phone').hidden && PH.screen === 'gallery') renderPhone();
 })();
 function phoneTime(){ const d = new Date(); return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); }
 function openPhone(){
