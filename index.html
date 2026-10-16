@@ -53,6 +53,18 @@ body{background:var(--void);color:var(--ink);font-family:var(--body);font-size:1
   padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .viewer-inner{display:grid;gap:18px;justify-items:center;width:100%}
 .close{font:400 15px var(--pixel);padding:14px 18px;border:3px solid #fff;background:var(--panel);color:#fff;cursor:pointer;box-shadow:4px 4px 0 #000}
+.vending-card{width:min(560px,100%);max-height:calc(100dvh - 112px);overflow:auto;padding:20px;background:var(--panel);border:3px solid var(--line-hi);box-shadow:0 0 0 3px #000,6px 6px 0 3px #000}
+.vending-card h2{margin:0;color:var(--accent);font:400 18px/1.4 var(--pixel)}
+.vending-card p{margin:8px 0 16px;color:var(--muted);font-size:15px;line-height:1.4}
+.vending-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.vending-item{display:flex;min-width:0;min-height:64px;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:2px solid var(--line-hi);background:#2a2022;color:var(--ink);text-align:left;font:500 15px var(--body);cursor:pointer}
+.vending-item:hover:not(:disabled){border-color:var(--accent);background:#34262a}
+.vending-item:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.vending-item span{min-width:0;overflow-wrap:anywhere}
+.vending-item small{flex:none;color:var(--accent);font:400 10px var(--pixel)}
+.vending-item:disabled{color:var(--muted);opacity:.7;cursor:default}
+.vending-item:disabled small{color:var(--cyan)}
+@media(max-width:480px){.vending-card{padding:14px}.vending-items{grid-template-columns:1fr}.vending-item{min-height:54px}}
 
 .badge-wrap{position:relative;padding-top:70px;width:min(86vw,320px)}
 .lanyard{position:absolute;left:50%;top:0;width:44px;height:84px;transform:translateX(-50%);
@@ -504,6 +516,9 @@ body.racing .hud,body.racing .hint,body.racing .quest,body.racing .controls{disp
 <div class="monitor" id="monitor" hidden><div class="scr"><h3><span>ЖУРНАЛ ОПЕРАЦИЙ</span><em>● СЛУЖБА БЕЗОПАСНОСТИ</em></h3><table id="logTable"></table></div></div>
 <div class="viewer" id="noteView" hidden role="dialog" aria-modal="true" aria-label="Записка">
   <div class="viewer-inner"><div class="note" id="noteText"></div><button class="close" type="button" data-close>СВЕРНУТЬ ЗАПИСКУ</button></div>
+</div>
+<div class="viewer" id="vendingView" hidden role="dialog" aria-modal="true" aria-label="Вендинговый автомат">
+  <div class="viewer-inner"><section class="vending-card"><h2>АВТОМАТ · ПЕРЕКУС</h2><p id="vendingMessage" aria-live="polite"></p><div class="vending-items" id="vendingItems"></div></section><button class="close" type="button" data-close>ОТОЙТИ</button></div>
 </div>
 <div class="phone-wrap" id="phone" hidden role="dialog" aria-modal="true" aria-label="Телефон"><div class="phone"><div class="ph-screen" id="phScreen"></div></div></div>
 <div class="race-hud" id="raceHud" hidden><div class="box"><label>ДО РАБОТЫ</label><div class="bar"><i id="raceProg"></i></div><label>НИТРО</label><div class="bar nitro"><i id="raceNitro"></i></div></div></div>
@@ -2025,6 +2040,7 @@ const freshState = (chapter = 1) => ({
   // глава 2: состояния объектов
   carTried: false, carCrank: false, wheelTaken: false, race: 'idle', atDesk: false, bossTalk: 'idle',
   note: 'unread', strangerDone: false, chatOpened: false, challenge: 'waiting', gateLight: null, gateOpen: false, gateDenied: false,
+  vending: { purchases: [], nauseous: false },
   // глава 3: состояния досье
   crouch: false,
   c5: { crowbar: false, inYard: false, doorTried: false, grateSeen: false, grateOpen: false, prying: false, inVent: false, inHatch: false, dead: false, reachedDoor: false, doorSeen: false, armoryOpen: false, inArmory: false },
@@ -2340,7 +2356,7 @@ async function setQuest(q){
 
 /* ---------- ввод ---------- */
 const keys = new Set();
-const viewerOpen = () => !$('passView').hidden || !$('photoView').hidden || !$('noteView').hidden || !$('taskCard').hidden;
+const viewerOpen = () => !$('passView').hidden || !$('photoView').hidden || !$('noteView').hidden || !$('taskCard').hidden || !$('vendingView').hidden;
 const dossierOpen = () => !$('dossier').hidden;
 const phoneOpen = () => !$('phone').hidden;
 const locked = () => S.phase !== 'play' || viewerOpen() || phoneOpen() || dossierOpen() || (S.chapter === 5 && (S.c5.inHatch || S.c5.dead)) || !$('dlg').hidden || movers.some(m => m.who === 'hero');
@@ -2419,6 +2435,7 @@ const INTERACTS = [
   { x: CAFE_DOOR.x, y: 48.4*T, when: ch(3), verb: 'выйти из кафе', go: () => toast('ВЫХОД', 'Сначала разберусь, что происходит') },
   // глава 2
   { always: true, when: () => S.chapter === 2 && ['contact','check','code'].includes(S.quest) && S.challenge !== 'done', verb: 'открыть телефон', go: () => openPhone() },
+  { x: 23.9*T, y: 26.8*T, when: ch(2), verb: 'купить перекус', go: () => openVending() },
   { x: car.x, y: car.y + 1.2*T, when: ch(2), verb: 'проверить машину', go: () => S.carTried ? toast('МАШИНА', 'Не заводится. Без шансов') : carScene() },
   { x: wheel.x, y: wheel.y + .8*T, when: () => S.chapter === 2 && !S.wheelTaken, verb: 'сесть на моноколесо', go: () => S.carTried ? rideScene() : toast('МОНОКОЛЕСО', 'Сначала попробую завести машину') },
   { x: SP2.gate[0]*T + 2, y: SP2.gate[1]*T, when: ch(2), verb: 'приложить пропуск', go: () => S.gateDenied ? toast('ТУРНИКЕТ', 'Доступ запрещён') : gateScene() },
@@ -2428,6 +2445,36 @@ const INTERACTS = [
       when: ch(2), verb: g.verb, go: () => talkTo(g) })),
   { x: EXIT_DOOR.x, y: 55.4*T, when: ch(2), verb: 'выйти на улицу', go: () => toast('ВЫХОД', S.quest === 'office' || S.quest === 'boss' ? 'Рабочий день только начался' : 'Сначала разберусь с запиской') }
 ];
+const VENDING_ITEMS = [
+  { id: 'watermelon', name: 'Арбуз', line: 'Целый арбуз на рабочий день. Что может пойти не так?' },
+  { id: 'icecream', name: 'Мороженое', line: 'Мороженое. Маленькая радость посреди рабочего дня.' },
+  { id: 'litEnergy', name: 'Lit Energy', line: 'Lit Energy. Надеюсь, теперь хватит сил дожить до вечера.' },
+  { id: 'ikeaCake', name: 'Торт из ИКЕА', line: 'Торт из ИКЕА. Откуда он в автомате? Ладно, беру.' },
+  { id: 'nuts', name: 'Орехи', line: 'Орехи. Неплохой перекус.' },
+  { id: 'water', name: 'Вода', line: 'Вода. Самый разумный выбор за сегодня.' },
+  { id: 'tunaOnigiri', name: 'Онигири с тунцом', line: 'Онигири с тунцом! Звучит необычно, попробую.' },
+  { id: 'chocolate', name: 'Шоколадный батончик', line: 'Шоколад. Кажется, день уже стал чуточку лучше.' }
+];
+function openVending(){
+  const bought = S.vending.purchases;
+  $('vendingItems').innerHTML = VENDING_ITEMS.map(item => {
+    const purchased = bought.includes(item.id);
+    return `<button class="vending-item" type="button" data-vending="${item.id}" ${purchased ? 'disabled' : ''}><span>${item.name}</span><small>${purchased ? 'КУПЛЕНО' : 'КУПИТЬ'}</small></button>`;
+  }).join('');
+  $('vendingMessage').textContent = S.vending.nauseous ? 'Матвею уже нехорошо. Может, хватит перекусов?' : 'Выбери что-нибудь к рабочему дню.';
+  showViewer('vendingView');
+}
+$('vendingItems').addEventListener('click', e => {
+  const button = e.target.closest('[data-vending]');
+  if (!button || button.disabled) return;
+  const item = VENDING_ITEMS.find(entry => entry.id === button.dataset.vending);
+  if (!item || S.vending.purchases.includes(item.id)) return;
+  S.vending.purchases.push(item.id);
+  const nauseous = !S.vending.nauseous && S.vending.purchases.includes('watermelon') && S.vending.purchases.includes('icecream');
+  S.vending.nauseous = S.vending.nauseous || nauseous;
+  closeViewers(); SFX.pick();
+  say([['matvey', nauseous ? 'Арбуз с мороженым — плохая идея. Ох, кажется, меня сейчас стошнит…' : item.line, true]]);
+});
 function openPass(){
   const p = CONFIG.pass;
   $('passCompany').textContent = p.company; $('passLevel').textContent = p.level; $('passName').textContent = p.name;
@@ -2444,7 +2491,7 @@ function toast(title, text, ms = 2200){
 }
 function openPhoto(key){ const ph = CONFIG.photos[key]; $('photoImg').src = ph.src; $('photoImg').alt = ph.caption; $('photoCap').textContent = ph.caption; showViewer('photoView'); }
 function showViewer(id){ keys.clear(); jvx = jvy = 0; $('joy').hidden = true; jid = null; $(id).hidden = false; $(id).querySelector('[data-close]').focus(); }
-function closeViewers(){ $('passView').hidden = true; $('photoView').hidden = true; $('noteView').hidden = true; $('taskCard').hidden = true; }
+function closeViewers(){ $('passView').hidden = true; $('photoView').hidden = true; $('noteView').hidden = true; $('taskCard').hidden = true; $('vendingView').hidden = true; }
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeViewers);
 document.querySelectorAll('.viewer').forEach(v => v.addEventListener('pointerdown', e => { if (e.target === v) closeViewers(); }));
 $('actBtn').onclick = () => { if (near) near.go(); };
