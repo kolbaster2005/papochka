@@ -222,13 +222,6 @@ body{background:var(--void);color:var(--ink);font-family:var(--body);font-size:1
 @media (prefers-reduced-motion:reduce){.monitor tr.hit .t{animation:none}}
 
 /* ---------- телефон ---------- */
-.phone-btn{position:fixed;z-index:36;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(max(16px,env(safe-area-inset-right,0px)) + 92px);font:400 13px var(--pixel);color:var(--ink);cursor:pointer;padding:10px 12px;min-height:44px;display:flex;gap:8px;align-items:center}
-.phone-btn i{width:10px;height:16px;border:2px solid currentColor;border-radius:3px;display:block;position:relative}.phone-btn i::after{content:'';position:absolute;left:2px;right:2px;bottom:1px;height:1px;background:currentColor}
-.phone-btn:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
-.phone-btn.dot::after{content:'';position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#e84a3a}
-body.racing .phone-btn{display:none}
-body.in-menu .phone-btn{right:max(16px,env(safe-area-inset-right,0px))}
-@media (max-width:520px){.phone-btn{font-size:0;gap:0;padding:10px 14px}.phone-btn i{width:12px;height:18px}}
 .phone-wrap{position:fixed;inset:0;z-index:35;display:grid;place-items:center;background:rgba(10,8,9,.72);padding:16px}
 .phone{width:min(360px,calc(100vw - 32px));height:min(680px,calc(100dvh - 32px));background:#111;border-radius:38px;padding:12px;box-shadow:0 0 0 3px #3a3a42,0 30px 80px rgba(0,0,0,.8);display:flex}
 .ph-screen{flex:1;background:#f2f3f7;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;color:#1a1d24;font-family:var(--body);position:relative}
@@ -498,7 +491,7 @@ body.racing .hud,body.racing .hint,body.racing .quest,body.racing .controls{disp
 <div class="joy" id="joy" hidden><i id="knob"></i></div>
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 <div class="quest off" id="quest" aria-live="polite"><h2>ЗАДАНИЕ</h2><ul id="questList"></ul></div>
-<button class="sound box" id="soundBtn" type="button" aria-pressed="true">ЗВУК</button><button class="phone-btn box" id="phoneBtn" type="button" aria-label="Телефон"><i></i>ТЕЛЕФОН</button>
+<button class="sound box" id="soundBtn" type="button" aria-pressed="true">ЗВУК</button>
 <div class="dlg box" id="dlg" hidden role="dialog" aria-live="polite"><canvas id="dlgFace" width="15" height="17"></canvas><div style="flex:1"><div class="who" id="dlgWho"></div><div class="txt" id="dlgTxt"></div></div><span class="more" id="dlgMore">▼</span></div>
 
 <div class="bubble" id="bubble" hidden></div>
@@ -2285,7 +2278,6 @@ const SFX = {
   fadeMusic(){ if (this.music) { this.music.fade(); this.music = null; } },
   stopMusic(){ if (this.music) { this.music.stop(); this.music = null; } }
 };
-$('phoneBtn').onclick = () => phoneButton();
 $('soundBtn').onclick = () => { SFX.setOn(!SFX.on); $('soundBtn').classList.toggle('off', !SFX.on); $('soundBtn').setAttribute('aria-pressed', SFX.on); };
 
 /* ================= утилиты сцен ================= */
@@ -3793,16 +3785,6 @@ function renderPhone(){
   }
 }
 function galNav(d){ const n = GALLERY.length, i = Math.max(0, Math.min(n - 1, (PH.galIdx || 0) + d)); if (i === PH.galIdx) return; PH.galIdx = i; SFX.blip(); renderPhone(); }
-// кнопка телефона — доступна всегда (в меню и в игре)
-function phoneButton(){
-  if (phoneOpen()) return closePhone();
-  const inMenu = document.body.classList.contains('in-menu');
-  if (!inMenu && (S.phase === 'cut' || S.phase === 'intro' || !$('dlg').hidden || dossierOpen() || laptopOpen() || miniOpen())) return;
-  if (!inMenu && (S.chapter === 2 && ['contact', 'check', 'code'].includes(S.quest) || S.chapter === 4)) return openPhone();
-  keys.clear(); jvx = jvy = 0; $('joy').hidden = true; fireKey6 = fireMouse6 = fireTouch6 = false;
-  if (!['gallery', 'photo', 'notes', 'calendar', 'camera', 'list'].includes(PH.screen) || PH.screen === 'list' && inMenu) PH.screen = 'home';
-  $('phone').hidden = false; renderPhone();
-}
 function phoneGo(to){ if (PH.scripted) return; PH.screen = to; renderPhone(); }
 $('phScreen').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
